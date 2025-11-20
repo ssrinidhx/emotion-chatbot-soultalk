@@ -1,0 +1,14 @@
+Flask==3.0.2
+flask-cors==4.0.0
+pymongo==4.6.1
+python-dotenv==1.0.1
+cohere==5.5.6
+transformers==4.39.3
+torch
+sentence-transformers==2.6.1
+scikit-learn==1.4.1.post1
+numpy==1.26.4
+soundfile==0.12.1
+librosa==0.10.1
+werkzeug==3.0.1
+
