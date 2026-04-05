@@ -1,29 +1,61 @@
-import torch
 import librosa
 import numpy as np
-from transformers import Wav2Vec2ForSequenceClassification, AutoFeatureExtractor
+import tf_keras
 
-MODEL_NAME = "superb/wav2vec2-base-superb-er"
+model = tf_keras.models.load_model("cnn.h5", compile=False)
 
-feature_extractor = AutoFeatureExtractor.from_pretrained(MODEL_NAME)
-model = Wav2Vec2ForSequenceClassification.from_pretrained(MODEL_NAME)
-id2label = model.config.id2label
-_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(_device)
+emotion_labels = [
+    "neutral",
+    "calm",
+    "happy",
+    "sad",
+    "angry",
+    "fearful",
+    "disgust",
+    "surprised"
+]
+
+def extract_feature(data, sr):
+
+    result = np.array([])
+
+    stft = np.abs(librosa.stft(data))
+
+    mfcc = np.mean(librosa.feature.mfcc(y=data, sr=sr, n_mfcc=40).T, axis=0)
+
+    chroma = np.mean(librosa.feature.chroma_stft(S=stft, sr=sr).T, axis=0)
+
+    mel = np.mean(librosa.feature.melspectrogram(y=data, sr=sr).T, axis=0)
+
+    result = np.hstack((mfcc, chroma, mel))
+
+    return result
 
 def predict_emotion_from_audio(file_path):
+
     try:
-        speech, sr = librosa.load(file_path, sr=16000, mono=True)
-        if len(speech) < 4000 or np.mean(np.abs(speech)) < 0.005:
+
+        data, sr = librosa.load(file_path, sr=22050)
+
+        if len(data) < 4000 or np.mean(np.abs(data)) < 0.005:
             print("⚠️ Audio not clear or too short")
             return "UNCLEAR"
-        inputs = feature_extractor(speech, sampling_rate=16000, return_tensors="pt", padding=True)
-        inputs = {k: v.to(_device) for k, v in inputs.items()}
-        with torch.no_grad():
-            logits = model(**inputs).logits
-        predicted_id = torch.argmax(logits, dim=-1).item()
-        emotion = id2label[predicted_id]
+
+        feature = extract_feature(data, sr)
+
+        feature = feature.reshape(1, 180, 1)
+
+        prediction = model.predict(feature)
+
+        predicted_index = np.argmax(prediction)
+
+        emotion = emotion_labels[predicted_index]
+
         return emotion.upper()
+
     except Exception as e:
         print(f"❌ Error in predicting emotion: {e}")
         return "UNCLEAR"
+    
+if __name__ == "__main__":
+    print("Model loaded successfully")

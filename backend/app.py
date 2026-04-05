@@ -127,7 +127,6 @@ Title (main idea or feeling only):
         return title_text
     except Exception as e:
         print("❌ Error generating session title:", str(e))
-        # fallback: first 3 meaningful words
         words = clean_text.split()
         return " ".join([w.capitalize() for w in words[:3]])
 
